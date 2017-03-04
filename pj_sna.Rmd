@@ -1,0 +1,110 @@
+---
+title: "PJ_SNA"
+output: html_document
+group6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=FALSE}
+library(igraph)
+getwd()
+wd <-"/Users/zhaorc/Desktop/Social_Network/Project/data2015"
+know <- "Roundtables_SNA_2015_100716_FL how do you know.csv"
+fnKnow <- paste(wd, know, sep="/")
+attr <- "Roundtables_SNA_2015_101116_FL Attributes.csv"
+fnAttr <- paste(wd, attr, sep="/")
+kno <- data.matrix(read.csv(fnKnow, header = TRUE, row.names = 1, sep = ","))
+kno[is.na(kno)] <- 0
+kno[kno < 3] <- 0
+kno[kno >= 3] <- 1
+diag(kno) <- 0
+atr <- read.csv(file=fnAttr,head=TRUE,sep=",")
+CaCD <- atr$CancerCD
+CaCD[is.na(CaCD)] <- 3
+labs <- vector()
+for (i in 1:length(CaCD)) {
+  if (CaCD[i] == 1) {labs[i] <- "Ca"}
+  else if (CaCD[i]==2) {labs[i] <- "CD"}
+  else  {labs[i] <- "DK"}
+}
+labs 
+g_2015<- graph_from_adjacency_matrix(kno,mode="undirected")
+V(g_2015)$CaCD <-CaCD
+summary(g_2015)
+plot(g_2015)
+V(g_2015)$CaCD
+degree_g_2015<-degree(g_2015)
+betweeneess_g_2015<-betweenness(g_2015)
+ev_obj<-evcent(g_2015)
+eigen_g_2015<-ev_obj$vector
+closeness_g_2015<-closeness(g_2015,mode='all')
+table_g_2015<-data.frame(V(g_2015)$name,degree_g_2015,betweeneess_g_2015,eigen_g_2015,closeness_g_2015)
+table_g_2015[order(-table_g_2015$degree_g_2015),]
+table_g_2015[order(-table_g_2015$betweeneess_g_2015),]
+```
+
+```{r,echo=FALSE}
+g_2015_Ca<-delete_vertices(g_2015,V(g_2015)$CaCD %in% c('2','3'))
+V(g_2015_Ca)
+degree(g_2015_Ca)
+plot(g_2015_Ca)
+graph.density(g_2015_Ca)
+g_2015_CD<-delete_vertices(g_2015,V(g_2015)$CaCD %in% c('1','3'))
+degree(g_2015_CD)
+plot(g_2015_CD)
+graph.density(g_2015_CD)
+```
+
+```{r,echo=FALSE}
+wd <-"/Users/zhaorc/Desktop/Social_Network/Project/data2016"
+know <- "Roundtables_SNA_2016_081916_FL how do you know.csv"
+fnKnow <- paste(wd, know, sep="/")
+attr <- "Roundtables_SNA_2016_081916_FL Attributes.csv"
+fnAttr <- paste(wd, attr, sep="/")
+kno <- data.matrix(read.csv(fnKnow, header = TRUE, row.names = 1, sep = ","))
+kno[is.na(kno)] <- 0
+kno[kno < 3] <- 0
+kno[kno >= 3] <- 1
+diag(kno) <- 0
+atr <- read.csv(file=fnAttr,head=TRUE,sep=",")
+CaCD <- atr$CancerCD
+CaCD[is.na(CaCD)] <- 3
+labs <- vector()
+for (i in 1:length(CaCD)) {
+  if (CaCD[i] == 1) {labs[i] <- "Ca"}
+  else if (CaCD[i]==2) {labs[i] <- "CD"}
+  else  {labs[i] <- "DK"}
+}
+labs 
+g_2016<- graph_from_adjacency_matrix(kno,mode="undirected")
+V(g_2016)$CaCD <-CaCD
+summary(g_2016)
+plot(g_2016)
+V(g_2016)$CaCD
+degree_g_2016<-degree(g_2016)
+betweeneess_g_2016<-betweenness(g_2016)
+ev_obj<-evcent(g_2016)
+eigen_g_2016<-ev_obj$vector
+closeness_g_2016<-closeness(g_2016,mode='all')
+table_g_2016<-data.frame(V(g_2016)$name,degree_g_2016,betweeneess_g_2016,eigen_g_2016,closeness_g_2016)
+table_g_2016[order(-table_g_2016$degree_g_2016),]
+table_g_2016[order(-table_g_2016$betweeneess_g_2016),]
+```
+
+```{r,echo=FALSE}
+g_2016_Ca<-delete_vertices(g_2016,V(g_2016)$CaCD %in% c('2','3'))
+V(g_2016_Ca)$CaCD
+degree(g_2016_Ca)
+graph.density(g_2016_Ca)
+plot(g_2016_Ca)
+g_2016_CD<-delete_vertices(g_2016,V(g_2016)$CaCD %in% c('1','3'))
+V(g_2016_CD)$CaCD
+plot(g_2016_CD)
+graph.density(g_2016_CD)
+```
+
+```{r,echo=FALSE}
+

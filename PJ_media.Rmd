@@ -1,0 +1,489 @@
+---
+title: "Project_Media"
+output: html_document
+GROUP 6
+Ruoyun Deng
+Naveen Ithikkat
+Rongchu Zhao
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+## Reading the data
+```{r, echo=FALSE}
+library(igraph)
+library(plyr)
+wd <- "~/Desktop/Social_Network/Project"
+setwd(wd)
+
+# Attribute files
+nodes.file <- "Media.users.attributes.csv" #read the attribute file 
+nodes.dir <- paste(wd, nodes.file, sep="/")
+edges.file <- "Media.users.final.csv"
+edges.dir <- paste(wd, edges.file, sep="/") #read the edge file
+
+nodes <- read.csv(file=nodes.dir, head=TRUE, sep=",")
+edges <- read.csv(file=edges.dir, header=T, row.names=1)
+links <- as.matrix(edges)
+dim(links)#check the file we read
+dim(nodes)
+net<- graph_from_incidence_matrix(links) #transfer our matrix to igraph project
+```
+## Initial look of our newtwork
+```{r,echo=FALSE}
+plot(net) #initial plot of our network
+summary(net) #initial check of our network
+attr<-read.csv('Media.users.attributes.csv',header=TRUE,sep=",")
+media<-attr$media#extract the media name from the attribute file
+media_name<-as.vector(media)
+audience.size<-attr$audience.size #extract the audience size from the attribute file
+user.age<-attr$user.age
+user.gender<-attr$user.gender
+media.type<-attr$media.type
+user.married<-attr$user.married
+media.name<-attr$media.name
+gender<-as.vector(user.gender)
+labs<-vector() #change the 'male' to 'm' makes plot more clear and clean
+for (i in 1:50){
+  if (gender[i] == 'Male'){gender[i] <- 'M' }
+  if (gender[i] == 'Female'){gender[i]<-'F'}
+}
+for (i in 1:50) {
+  labs[i]<-gender[i]
+}
+for(i in 51:62) {
+  labs[i]<-media_name[i]
+}
+labs
+V(net)$labels<-labs #assign the gender and name attribute to user node and media node respectively.
+
+myCols<-vector() #give different color based on the node attribute
+for (i in 1:length(labs)){
+  if(V(net)$labels[i] == "M"){ myCols[i]<-"Turquoise"}
+  else if(V(net)$labels[i] == "F"){ myCols[i]<-"Red"}
+  else{ myCols[i]<-'yellow' }
+}
+
+V(net)$color<-myCols
+plot(net, main="Whole network",
+     vertex.color=V(net)$color,
+     edge.color="grey",
+     vertex.size=8,
+     vertex.frame.color="yellow",
+     vertex.label=V(net)$labels
+  )
+#betweenness plus commnuities.
+set.seed(1122)
+eb<- edge.betweenness.community(net)
+plot(eb,net,vertex.label = V(net)$labels)
+```
+## Subgroup Male/Female
+### Male subgroup
+```{r,echo=FALSE}
+gender
+V(net)$labels
+V(net)$media.type<-media.type #assign media type to nodes as nodes attribute
+male<-delete_vertices(net,V(net)$labels == 'F') #take the subset the male users
+colorm<-vector()
+V(male)$labels
+for (i in 1:46){
+  if(V(male)$labels[i] == "M"){ colorm[i]<-"gray"}
+  else{ colorm[i]<-'red' }
+}
+V(male)$color<-colorm
+plot(male,main='Male Network',
+     edge.color='gray50',
+     vertex.color=V(male)$color,
+     vertex.label=V(male)$labels)
+summary(male) #look at how the relationship goes in male subgroup 
+eb<- edge.betweenness.community(male)
+plot(eb,male,vertex.label = V(male)$labels)
+```
+
+```{r,echo=FALSE}
+degree(male) #let us know which media has highest degree among male and who watches most medias among male 
+degree(male)[1:34]
+mean(degree(male)[1:34])
+# Avg 2.94 channels consumed by male users
+sort(degree(male)[35:46], decreasing = TRUE)
+# Top 3 channels for males - ESPN, FOX, Washington Post
+
+female<-delete_vertices(net,V(net)$labels == 'M') #did the same thing as male 
+colorf<-vector()
+V(female)$labels
+for (i in 1:28){
+  if(V(female)$labels[i] == "F"){ colorf[i]<-"pink"}
+  else{ colorf[i]<-'red' }
+}
+V(female)$color<-colorf
+plot(female,main='Female Network',
+     edge.color='gray50',
+     vertex.color=V(female)$color,
+     vertex.label=V(female)$labels)
+summary(female)
+degree(female)[1:16]
+mean(degree(female)[1:16])
+# Avg 3.06 channels consumed by female users
+sort(degree(female)[17:28], decreasing = TRUE)
+# Top 3 channels for females - HBO, WSJ, ABC
+eb<-edge.betweenness.community(female)
+plot(eb,female,vertex.label=V(female)$labels)
+
+female_degree<-as.data.frame(degree(female))
+male_degree<-as.data.frame(degree(male))
+name_m<-as.data.frame(V(male)$labels)
+name_f<-as.data.frame(V(female)$labels)
+male_full<-cbind(male_degree,name_m)
+female_full<-cbind(female_degree,name_f)
+plot(female,
+     vertex.label=V(female)$labels)
+plot(male,vertex.label=V(male)$labels)
+type_f<-as.data.frame(V(female)$media.type)
+type_m<-as.data.frame(V(male)$media.type)
+male_full_type<-cbind(male_full,type_m)
+female_full_type<-cbind(female_full,type_f)
+male_full_type
+male_media<-subset(male_full_type,male_full_type['V(male)$media.type'] != 'NA')
+female_media<-subset(female_full_type,female_full_type['V(female)$media.type'] != 'NA')
+names(male_media)<-c('degree','name','type')
+names(female_media)<-c('degree','name','type')
+#ddply(male_media,~type,summarise,mean=mean(degree)) #mean degree by media type
+#ddply(female_media,~type,summarise,mean=mean(degree)) 
+#DF<-ddply(male_media,.(name),transform,prop=degree/sum(degree))
+#DF
+#DF<-ddply()
+plot(female,
+    vertex.label = V(female)$media.type)
+plot(male,
+     vertex.label = V(male)$media.type)
+```
+
+
+```{r,echo=FALSE}
+marriage<-as.vector(user.married)
+labs2<-vector()
+for (i in 1:50) {
+  labs2[i]<-marriage[i]
+}
+for(i in 51:62) {
+  labs2[i]<-media_name[i]
+}
+labs2
+V(net)$labels2<-labs2
+
+myCols<-vector()
+for (i in 1:length(labs2)){
+  if(V(net)$labels2[i] == "Y"){ myCols[i]<-"pink"}
+  else if(V(net)$labels2[i] == "N"){ myCols[i]<-"gray"}
+  else{ myCols[i]<-'red' }
+}
+
+V(net)$color<-myCols
+plot(net, main="Marital Status",
+     vertex.color=V(net)$color,
+     edge.color="gray50",
+     vertex.size=8,
+     vertex.frame.color="yellow",
+     vertex.label=V(net)$labels2
+  )
+# Make subgraphs for each desired group
+marriedy<-delete_vertices(net,V(net)$labels2 == "N")
+marriedn<-delete_vertices(net,V(net)$labels2 == "Y")
+plot(marriedy, main = 'Married Users',vertex.label = V(marriedy)$labels2)
+plot(marriedn,main='Unmarried Users',vertex.label = V(marriedn)$labels2)
+summary(marriedy)
+degree(marriedy)[1:20]
+mean(degree(marriedy)[1:20])
+sort(degree(marriedy)[21:32], decreasing = TRUE)
+
+summary(marriedn)
+degree(marriedn)[1:30]
+mean(degree(marriedn)[1:30])
+sort(degree(marriedn)[31:42], decreasing = TRUE)
+
+eb1 <- edge.betweenness.community(net)
+plot(eb,net,vertex.label = V(net)$labels2)
+
+```
+
+```{r,echo=FALSE}
+age<-as.vector(user.age)
+for (i in 1:50) {
+  if(age[i]<=30) {age[i]<-'1'}
+  else if(30<age[i]&&age[i]<=40) {age[i]<-'2'}
+  else if(40<age[i]&&age[i]<=50) {age[i]<-'3'}
+  else {age[i]<-'4'}
+}
+age
+
+labs3<-vector()
+for (i in 1:50) {
+  labs3[i]<-age[i]
+}
+for(i in 51:62) {
+  labs3[i]<-media_name[i]
+}
+labs3
+V(net)$labels3<-labs3
+
+myCols<-vector()
+for (i in 1:length(labs3)){
+  if(V(net)$labels3[i] == "1"){ myCols[i]<-"Turquoise"}
+  else if(V(net)$labels3[i] == "2"){ myCols[i]<-"Red"}
+  else if(V(net)$labels3[i] == "3"){ myCols[i]<-"blue"}
+  else if(V(net)$labels3[i] == "4"){ myCols[i]<-"green"}
+  else{ myCols[i]<-'yellow' }
+}
+
+V(net)$color<-myCols
+plot(net, main="Different Age group",
+     vertex.color=V(net)$color,
+     edge.color="grey",
+     vertex.size=8,
+     vertex.frame.color="yellow",
+     vertex.label=V(net)$labels3
+  )
+summary(net)
+degree(net)
+degree(net)[1:50]
+mean(degree(net)[1:50])
+# Avg 2.98 channels consumed by each user
+sort(degree(net)[51:62], decreasing = TRUE)
+# Top 3 overall channels - ESPN, HBO, FOX
+
+eb <- edge.betweenness.community(net)
+plot(eb,net,vertex.label = V(net)$labels3)
+eb1 <- edge.betweenness.community(net)
+plot(eb,net,vertex.label = V(net)$labels2)
+```
+
+```{r,echo=FALSE}
+# Make subgraphs for each desired age group
+#agegp1<-delete_vertices(net,V(net)$labels3 %in% c("2","3","4"))
+## CAUTION - agegp1 is including 4 for some reason
+agegp2<-delete_vertices(net,V(net)$labels3 %in% c("1","3","4"))
+agegp3<-delete_vertices(net,V(net)$labels3 %in% c("1","2","4"))
+agegp4<-delete_vertices(net,V(net)$labels3 %in% c("1","2","3"))
+agegp12<-delete_vertices(net,V(net)$labels3 %in% c("3","4"))
+agegp23<-delete_vertices(net,V(net)$labels3 %in% c("1","4"))
+agegp34<-delete_vertices(net,V(net)$labels3 %in% c("1","2"))
+agegp234<-delete_vertices(net,V(net)$labels3 %in% c("1"))
+
+## CAUTION in this block - using agegp1 includes 4 also
+#plot(agegp1, vertex.label = V(agegp1)$labels3)
+#V(net)$labels3
+#V(agegp1)$labels3
+#summary(agegp1)
+#degree(agegp1)[1:10]
+#mean(degree(agegp1)[1:10])
+## CAUTION end
+
+summary(agegp2)
+V(agegp2)$labels
+for (i in 1:16){
+  V(agegp2)$labels[i]<-'user'
+}
+col2<-vector()
+for (i in 1:16){
+  col2[i]<-"orange"
+}
+for (i in 17:28) {
+col2[i]<-'red'
+}
+V(agegp2)$color<-col2
+plot(agegp2,main='31-40 age group',
+     edge.color='gray50',
+     vertex.color=V(agegp2)$col2,
+     vertex.label=V(agegp2)$labels)
+
+
+# To find avg no. of channels consumed by this age group
+degree(agegp2)[1:15]
+mean(degree(agegp2)[1:15])
+# To find top 3 channels watched by this age group
+sort(degree(agegp2)[16:27], decreasing = TRUE)
+#Note - This gp has distinct top 3 - ESPN, FOX, CNN
+
+summary(agegp3)
+degree(agegp3)[1:15]
+mean(degree(agegp3)[1:15])
+#Note - This gp has highest mean at 3.3 slightly above others (who have about 2.5 #to 3)
+sort(degree(agegp3)[16:27], decreasing = TRUE)
+
+V(agegp3)$labels
+for (i in 1:15){
+  V(agegp3)$labels[i]<-'user'
+}
+col3<-vector()
+for (i in 1:15){
+  col3[i]<-"orange"
+}
+for (i in 16:27) {
+col3[i]<-'red'
+}
+V(agegp3)$color<-col3
+plot(agegp3,main='41-50 age group',
+     edge.color='gray50',
+     vertex.color=V(agegp3)$col3,
+     vertex.label=V(agegp3)$labels)
+
+summary(agegp4)
+degree(agegp4)[1:10]
+mean(degree(agegp4)[1:10])
+sort(degree(agegp4)[11:22], decreasing = TRUE)
+
+V(agegp4)$labels
+for (i in 1:10){
+  V(agegp4)$labels[i]<-'user'
+}
+col4<-vector()
+for (i in 1:10){
+  col4[i]<-"orange"
+}
+for (i in 11:22) {
+col4[i]<-'red'
+}
+V(agegp4)$color<-col4
+plot(agegp4,main='51-70 age group',
+     edge.color='gray50',
+     vertex.color=V(agegp4)$col4,
+     vertex.label=V(agegp4)$labels)
+
+#summary(agegp12)
+#degree(agegp12)[1:25]
+#mean(degree(agegp12)[1:25])
+## CAUTION using agegp1 includes 4 also
+
+summary(agegp23)
+degree(agegp23)[1:30]
+mean(degree(agegp23)[1:30])
+sort(degree(agegp23)[31:42], decreasing = TRUE)
+V(agegp23)$labels
+for (i in 1:30){
+  V(agegp23)$labels[i]<-'user'
+}
+col23<-vector()
+for (i in 1:30){
+  col23[i]<-"orange"
+}
+for (i in 31:42) {
+col23[i]<-'red'
+}
+V(agegp23)$color<-col23
+plot(agegp23,main='31-50 age group',
+     edge.color='gray50',
+     vertex.color=V(agegp23)$col23,
+     vertex.label=V(agegp23)$labels)
+
+#Note - This gp has distinct top 3 - ESPN, FOX, HBO (but maybe not useful)
+
+summary(agegp34)
+degree(agegp34)[1:25]
+mean(degree(agegp34)[1:25])
+sort(degree(agegp34)[26:37], decreasing = TRUE)
+
+summary(agegp234)
+degree(agegp234)[1:40]
+mean(degree(agegp234)[1:40])
+sort(degree(agegp234)[41:52], decreasing = TRUE)
+
+V(agegp234)$labels
+for (i in 1:40){
+  V(agegp234)$labels[i]<-'user'
+}
+col234<-vector()
+for (i in 1:40){
+  col234[i]<-"orange"
+}
+for (i in 41:52) {
+col234[i]<-'red'
+}
+V(agegp234)$color<-col234
+plot(agegp234,main='31-70 age group',
+     edge.color='gray50',
+     vertex.color=V(agegp234)$col234,
+     vertex.label=V(agegp234)$labels)
+
+#Note - This gp has distinct top 3 - ESPN, FOX, HBO
+
+#eb<- edge.betweenness.community(agegp1)
+#plot(eb,agegp1,vertex.label = V(agegp1)$labels3)
+## CAUTION using agegp1 includes 4 also
+
+eb<- edge.betweenness.community(agegp2)
+plot(eb,agegp2,vertex.label = V(agegp2)$labels3)
+#Note - This gp has distinct communities
+
+eb<- edge.betweenness.community(agegp3)
+plot(eb,agegp3,vertex.label = V(agegp3)$labels3)
+eb<- edge.betweenness.community(agegp4)
+plot(eb,agegp4,vertex.label = V(agegp4)$labels3)
+#Note - This gp has distinct communities
+eb<- edge.betweenness.community(agegp23)
+plot(eb,agegp23,vertex.label = V(agegp23)$labels3)
+eb<- edge.betweenness.community(agegp34)
+plot(eb,agegp34,vertex.label = V(agegp34)$labels3)
+#Note - This gp has somewhat distinct communities
+eb<- edge.betweenness.community(agegp234)
+plot(eb,agegp234,vertex.label = V(agegp234)$labels3)
+```
+
+```{r,echo=FALSE}
+V(female)$labels
+type<-vector()
+for (i in 1:17) {
+  if(V(female)$labels[i] == 'F'){ type[i] <- 'user'}
+  else{type[i] <- 'media'}
+}
+# Media outlets are blue squares, audience nodes are orange circles:
+V(female)$color <- c("orange", "steel blue")[V(female)$type+1]
+V(female)$shape <- c("circle", "square")[V(female)$type+1]
+
+V(female)$label.cex=.6
+V(female)$label.font=2
+
+plot(female,main='Female User', vertex.label.color="white", vertex.size=(V(female)$type+1.5)*8,vertex.label =V(female)$labels) 
+V(male)$labels
+typem<-vector()
+for (i in 1:34) {
+  if(V(male)$labels[i] == 'M'){ type[i] <- 'user'}
+  else{type[i] <- 'media'}
+}
+# Media outlets are blue squares, audience nodes are orange circles:
+V(male)$color <- c("orange", "steel blue")[V(male)$type+1]
+V(male)$shape <- c("circle", "square")[V(male)$type+1]
+
+V(male)$label.cex=.5
+V(male)$label.font=2
+V(i96)$label[1:857] <- NA
+V(male)$color[1:46] <-  rgb(1,0,0,.1)
+V(male)$size[1:46] <- 2
+
+plot(male,main='Male User', vertex.label.color="black", vertex.size=(V(male)$type+1)*8,vertex.label =V(male)$labels,layout =layout.fruchterman.reingold.grid) 
+```
+
+```{r,echo=FALSE}
+labs4<-vector()
+for(i in 1:62) {
+  labs4[i]<-media.type[i]
+}
+for (i in 1:50) {
+  labs4[i]<-'user'
+}
+V(net)$labels4<-labs4
+# Make subgraphs for each desired media type
+mediatype1<-delete_vertices(net,V(net)$labels4 == "2")
+mediatype2<-delete_vertices(net,V(net)$labels4 == "1")
+
+summary(mediatype1)
+degree(mediatype1)
+degree(mediatype1)[51:55]
+mean(degree(mediatype1)[1:50])
+
+summary(mediatype2)
+degree(mediatype2)
+degree(mediatype2)[51:57]
+mean(degree(mediatype2)[1:50])
+```

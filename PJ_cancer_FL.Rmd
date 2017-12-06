@@ -1,0 +1,395 @@
+---
+title: "FL_2015_2016"
+output: html_document
+group6
+Ruoyun Deng
+Naveen Ithikkat
+Rongchu Zhao
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,echo=FALSE}
+# Choose the 2015 files to work with
+library(igraph)
+library(network)
+wd<-getwd()
+setwd(wd)
+know <- "data2015/Roundtables_SNA_2015_100716_FL how do you know.csv"
+fnKnow <- paste(wd, know, sep="/")
+send <- "data2015/Roundtables_SNA_2015_100716_FL Send info.csv"
+fnSend <- paste(wd, send, sep="/")
+receive <- "data2015/Roundtables_SNA_2015_100716_FL Receive info.csv"
+fnReceive <- paste(wd, receive, sep="/")
+attr <- "data2015/Roundtables_SNA_2015_101116_FL Attributes.csv"
+fnAttr <- paste(wd, attr, sep="/")
+```
+
+```{r,echo=FALSE}
+# Read 2015 network files
+kno <- data.matrix(read.csv(fnKnow, header = TRUE, row.names = 1, sep = ","))
+sen2015 <- data.matrix(read.csv(fnSend, header = TRUE, row.names = 1, sep = ","))
+rec2015 <- data.matrix(read.csv(fnReceive, header = TRUE, row.names = 1, sep = ","))
+kno <- data.matrix(read.csv(fnKnow, header = TRUE, row.names = 1, sep = ","))
+atr2015 <- read.csv(file=fnAttr,head=TRUE,sep=",")
+# Clean 2015 files
+kno[is.na(kno)] <- 0 # Replace NAs by 0
+sen[is.na(sen)] <- 0
+rec[is.na(rec)] <- 0
+kno[is.na(kno)] <- 0
+iexchg2015 <- sen2015 + rec2015 #here we added the sending info and receving info togther. 
+iexchg2016 <- sen2016 + rec2016 #same thing we did for 2016
+iexchg2015[iexchg2015 < 2] <- 0 #here we want to convert the matrix as binary matrix, we choose 2 as our threshold value.
+iexchg2015[iexchg2015 >= 2] <- 1
+diag(iexchg2015) <- 0
+kno[kno < 3] <- 0  #for knowing information, we chose 3 as our threshold value. So basically we are converting the 'How do you know' matrix to 'Do you know' matrix.
+kno[kno >= 3] <- 1
+diag(kno) <- 0
+atr <- read.csv(file=fnAttr,head=TRUE,sep=",") #reading the attribute file and assign it to vertex.
+CaCD <- atr$CancerCD
+CaCD[is.na(CaCD)] <- 3
+labs <- vector()
+for (i in 1:length(CaCD)) {
+  if (CaCD[i] == 1) {labs[i] <- "Ca"}
+  else if (CaCD[i]==2) {labs[i] <- "CD"}
+  else  {labs[i] <- "DK"}
+}
+labs 
+g_2015<- graph_from_adjacency_matrix(kno,mode="undirected")# the igraph object from the 'how do you know' matrix
+g2_2015 <- graph_from_adjacency_matrix(iexchg2015,mode="undirected") #the igraph object from sending and receiving information matrix
+V(g2_2015)$CaCD <- CaCD  
+V(g_2015)$CaCD <-CaCD
+V(g2_2015)$labels<-labs
+```
+
+```{r,echo=FALSE}
+#descriptive analysis of whole network in 2015
+summary(g_2015)
+plot(g_2015)
+V(g_2015)$CaCD
+degree_g_2015<-degree(g_2015) #here we are using different method to show the descriptive analysis of the network.
+betweeneess_g_2015<-betweenness(g_2015) 
+ev_obj<-evcent(g_2015)
+eigen_g_2015<-ev_obj$vector
+closeness_g_2015<-closeness(g_2015,mode='all')
+table_g_2015<-data.frame(V(g_2015)$name,degree_g_2015,betweeneess_g_2015,eigen_g_2015,closeness_g_2015)
+table_g_2015[order(-table_g_2015$degree_g_2015),]
+table_g_2015[order(-table_g_2015$betweeneess_g_2015),]
+table_g_2015[order(-table_g_2015$closeness_g_2015),]
+table_g_2015[order(-table_g_2015$eigen_g_2015),]
+#using different method, the order is different. 
+```
+
+```{r,echo=FALSE}
+#descriptive analysis of subgroup analysis in 2015
+#only looked at Ca people and CD people respectively
+g_2015_Ca<-delete_vertices(g_2015,V(g_2015)$CaCD %in% c('2','3')) #only keep nodes that are belong to Ca.
+degree(g_2015_Ca) #how well of thoes Ca people connected in 2015
+plot(g_2015_Ca) 
+graph.density(g_2015_Ca) 
+g_2015_CD<-delete_vertices(g_2015,V(g_2015)$CaCD %in% c('1','3')) #same thing for CD people.
+degree(g_2015_CD)
+plot(g_2015_CD)
+graph.density(g_2015_CD)
+```
+
+```{r,echo=FALSE}
+#look at the network based on sending and reciving information. 
+g2CaCD <- delete_vertices(g2_2015,V(g2_2015)$labels == 'DK') #we removed the 'DK' people, only looking at the interaction between Ca and CD people. 
+plot(g2CaCD)
+#we did the same analysis as we did in the full network, we want to find out the top three nodes that have highest network statistics.
+degree_g2CaCD<-degree(g2CaCD) #here we are using different method to show the descriptive analysis of the network.
+betweeneess_g2CaCD<-betweenness(g2CaCD) 
+ev_obj<-evcent(g2CaCD)
+eigen_g2CaCD<-ev_obj$vector
+closeness_g2CaCD<-closeness(g2CaCD,mode='all')
+table_g2CaCD<-data.frame(V(g2CaCD)$name,degree_g2CaCD,betweeneess_g2CaCD,eigen_g2CaCD,closeness_g2CaCD)
+table_g2CaCD[order(-table_g2CaCD$degree_g2CaCD),]
+table_g_2015[order(-table_g_2015$betweeneess_g_2015),]
+table_g_2015[order(-table_g_2015$closeness_g_2015),]
+table_g_2015[order(-table_g_2015$eigen_g_2015),]
+summary(g2CaCD)
+graph.density(g2CaCD)#the overall interaction between thoes two groups are 0.25.
+set.seed(1122)
+eb <- edge.betweenness.community(g2CaCD)
+plot (eb,g2CaCD,vertex.label=V(g2CaCD)$labels)
+```
+
+
+```{r,echo=FALSE}
+wd<-getwd()
+setwd(wd)
+#working on the 2016 data by using the same steps as used for 2015
+know2016 <- "data2016/Roundtables_SNA_2016_081916_FL how do you know.csv"
+fnKnow2016 <- paste(wd, know2016, sep="/")
+send2016 <- "data2016/Roundtables_SNA_2016_081916_FL Send info.csv"
+fnSend2016 <- paste(wd, send2016, sep="/")
+receive2016 <- "data2016/Roundtables_SNA_2016_081916_FL Receive info.csv"
+fnReceive2016 <- paste(wd, receive2016, sep="/")
+attr2016 <- "data2016/Roundtables_SNA_2016_081916_FL Attributes.csv"
+fnAttr2016 <- paste(wd, attr2016, sep="/")
+# Read 2016 network files
+kno2016 <- data.matrix(read.csv(fnKnow2016, header = TRUE, row.names = 1, sep = ","))
+sen2016 <- data.matrix(read.csv(fnSend2016, header = TRUE, row.names = 1, sep = ","))
+rec2016 <- data.matrix(read.csv(fnReceive2016, header = TRUE, row.names = 1, sep = ","))
+# Clean 2016 files
+kno2016[is.na(kno2016)] <- 0 # Replace NAs by 0
+sen2016[is.na(sen2016)] <- 0
+rec2016[is.na(rec2016)] <- 0
+atr2016 <- read.csv(file=fnAttr2016,head=TRUE,sep=",")
+iexchg2016 <- sen2016 + rec2016
+```
+
+```{r,echo=FALSE}
+#look at the network as a whole. 
+# Create binary adjacancy matrices
+kno2016[kno2016 < 3] <- 0
+kno2016[kno2016 >= 3] <- 1
+diag(kno2016) <- 0
+iexchg2016[iexchg2016 < 2] <- 0
+iexchg2016[iexchg2016 >= 2] <- 1
+diag(iexchg2016) <- 0
+CaCD2016 <- atr2016$CancerCD
+CaCD2016[is.na(CaCD2016)] <- 3
+labs2016 <- vector()
+for (i in 1:length(CaCD2016)) {
+  if (CaCD2016[i] == 1) {labs2016[i] <- "Ca"}
+  else if (CaCD2016[i]==2) {labs2016[i] <- "CD"}
+  else  {labs2016[i] <- "DK"}
+}
+labs2016 
+
+g_2016<- graph_from_adjacency_matrix(kno2016,mode="undirected")
+V(g_2016)$CaCD <-CaCD2016
+summary(g_2016)
+plot(g_2016)
+V(g_2016)$CaCD
+degree_g_2016<-degree(g_2016)
+betweeneess_g_2016<-betweenness(g_2016)
+ev_obj<-evcent(g_2016)
+eigen_g_2016<-ev_obj$vector
+closeness_g_2016<-closeness(g_2016,mode='all')
+table_g_2016<-data.frame(V(g_2016)$name,degree_g_2016,betweeneess_g_2016,eigen_g_2016,closeness_g_2016)
+table_g_2016[order(-table_g_2016$degree_g_2016),]
+table_g_2016[order(-table_g_2016$betweeneess_g_2016),]
+table_g_2016[order(-table_g_2016$closeness_g_2016),]
+table_g_2016[order(-table_g_2016$eigen_g_2016),]
+#we did exact same thing as in 2015. 
+```
+
+```{r,echo=FALSE}
+#take the subgraph of the network by only looking at the node which only belongs to Ca or CD.
+g_2016_Ca<-delete_vertices(g_2016,V(g_2016)$CaCD %in% c('2','3'))
+V(g_2016_Ca)$CaCD
+degree(g_2016_Ca)
+graph.density(g_2016_Ca)
+plot(g_2016_Ca)
+g_2016_CD<-delete_vertices(g_2016,V(g_2016)$CaCD %in% c('1','3'))
+V(g_2016_CD)$CaCD
+plot(g_2016_CD)
+graph.density(g_2016_CD)
+```
+
+```{r,echo=FALS}
+g22016 <- graph_from_adjacency_matrix(iexchg2016,mode="undirected")
+V(g22016)$CaCD <- CaCD2016
+V(g22016)$labels<-labs2016
+g22016CaCD <- delete_vertices(g22016,V(g22016)$labels == 'DK')
+summary(g22016CaCD)
+plot(g22016CaCD)
+degree_g22016CaCD<-degree(g22016CaCD) 
+betweeneess_g22016CaCD<-betweenness(g22016CaCD) 
+ev_obj<-evcent(g22016CaCD)
+eigen_g22016CaCD<-ev_obj$vector
+closeness_g22016CaCD<-closeness(g22016CaCD,mode='all')
+table_g22016CaCD<-data.frame(V(g22016CaCD)$name,degree_g22016CaCD,eigen_g22016CaCD,closeness_g22016CaCD,betweeneess_g22016CaCD)
+table_g22016CaCD[order(-table_g22016CaCD$degree_g22016CaCD),]
+table_g22016CaCD[order(-table_g22016CaCD$betweeneess_g22016CaCD),]
+table_g22016CaCD[order(-table_g22016CaCD$closeness_g22016CaCD),]
+table_g22016CaCD[order(-table_g22016CaCD$eigen_g22016CaCD),]
+graph.density(g22016CaCD)
+#here we can see the density among those two groups increased, recalll that in 2015 it is 0.25. 
+set.seed(1122)
+eb <- edge.betweenness.community(g22016CaCD)
+plot (eb,g22016CaCD,vertex.label=V(g22016CaCD)$labels)
+```
+
+## Below two chuncks, we want to see the nodes and edges that only connected between two different community. Since we want to see wether the 'bridge'vertex changes from 2015 to 2016. 
+
+```{r,echo=FALSE}
+wd<-getwd()
+setwd(wd)
+know <- "data2015/Roundtables_SNA_2015_100716_FL how do you know.csv"
+fnKnow <- paste(wd, know, sep="/")
+send <- "data2015/Roundtables_SNA_2015_100716_FL Send info.csv"
+fnSend <- paste(wd, send, sep="/")
+receive <- "data2015/Roundtables_SNA_2015_100716_FL Receive info.csv"
+fnReceive <- paste(wd, receive, sep="/")
+attr <- "data2015/Roundtables_SNA_2015_101116_FL Attributes.csv"
+fnAttr <- paste(wd, attr, sep="/")
+rcv <- data.matrix(read.csv(fnReceive, header = TRUE, row.names = 1, sep = ","))
+send <- data.matrix(read.csv(fnSend, header = TRUE, row.names = 1, sep = ","))
+
+rcv[is.na(rcv)] <- 0
+send[is.na(send)] <- 0
+
+info.15 <- rcv+send
+info.bi.15 <-info.15 
+for (i in 1:ncol(info.bi.15)){
+  for (j in 1:nrow(info.bi.15)){
+    if (info.bi.15[j,i] >= 2) {info.bi.15[j,i] <- 1}
+    else info.bi.15[j,i] <- 0
+  }
+}
+  
+head(info.bi.15)  
+g.bi.15 <- graph_from_adjacency_matrix(info.bi.15,mode="undirected")
+V(g.bi.15)$CaCD <- labs
+g.bi.noDK.15 <- delete_vertices(g.bi.15,V(g.bi.15)$CaCD == 'DK')
+l= layout_in_circle(g.bi.noDK.15)
+deg = degree(g.bi.noDK.15)
+plot(g.bi.noDK.15, vertex.size=deg, vertex.label = V(g.bi.noDK.15)$CaCD)
+atr <- read.csv(file=fnAttr,head=TRUE,sep=",")
+#stay the names of nodes and their CaCD
+atr.ccd.15 <- atr[,c(1,4)]
+atr.ccd.15[is.na(atr.ccd.15)] <- 3  
+# labels for cancer or CD
+for (i in 1:nrow(atr.ccd.15)) {
+  if (atr.ccd.15[i,2] == 1) {atr.ccd.15[i,2] <- "Ca"}
+  else if (atr.ccd.15[i,2]==2) {atr.ccd.15[i,2] <- "CD"}
+  else  {atr.ccd.15[i,2] <- "DK"}
+}
+#create a date frame of info.bi
+info.edge.df.15 <- as_data_frame(g.bi.15, what = "edges")
+
+Ca.df.15 <- atr.ccd.15[grep("Ca", atr.ccd.15[,2]),]
+CD.df.15 <- atr.ccd.15[grep("CD", atr.ccd.15[,2]),]
+DK.df.15 <- atr.ccd.15[grep("DK", atr.ccd.15[,2]),]
+Ca.15<-c("FL01","FL02","FL04","FL05","FL06","FL10","FL11","FL17","FL23","FL25","FL26","FL27","FL32")
+CD.15<-c("FL07","FL12","FL13","FL18","FL24")
+DK.15<-c("FL03","FL08","FL09","FL14","FL15","FL16","FL19","FL20","FL21","FL28","FL29","FL30","FL31","FL33","FL34","FL22")
+Ca.15_ <- as.character(Ca.df.15[,1])
+CD.15_ <- as.character(CD.df.15[,1])
+DK.15_ <- as.character(DK.df.15[,1])
+
+for(j in 1:nrow(info.edge.df.15 )){
+  if(info.edge.df.15[j,1] %in% Ca.15 & info.edge.df.15[j,2] %in% CD.15) info.edge.df.15[j,3] = 1
+  else if(info.edge.df.15[j,1] %in% CD.15 & info.edge.df.15[j,2] %in% Ca.15) info.edge.df.15[j,3] = 1
+  else if(info.edge.df.15[j,1] %in% DK.15 | info.edge.df.15[j,2] %in% DK.15) info.edge.df.15[j,3] = 2
+  else (info.edge.df.15[j,3]=0)
+}
+#data frame which only has edges between Ca and CD
+info.edge.CaCD.15 <- info.edge.df.15[info.edge.df.15$V3 != 2,]
+info.edge.CaCD.15.ig <- graph_from_data_frame(d=info.edge.CaCD.15[,1:2], directed = F)
+
+#Should check for different datasets!!!
+#Add two left points(FL32)
+info.edge.CaCD.15.ig<-info.edge.CaCD.15.ig + vertex("FL32")
+V(info.edge.CaCD.15.ig) #FL8 is disordered here
+
+#left point
+FL32 <- grep("FL32", atr.ccd.15[,1])
+FL18 <- grep("FL18", atr.ccd.15[,1])
+FL27 <- grep("FL27", atr.ccd.15[,1])
+#new labs without FL32
+labs.new <- labs[-c(FL32,FL18,FL27)]
+labs.CaCD <- labs.new[-grep("DK",  labs.new)]
+labs.CaCD[16] <- "CD" #attribute for 18
+labs.CaCD[17] <- "Ca" #attribute for 27
+labs.CaCD[18] <- "Ca" #attribute for 32
+
+E(info.edge.CaCD.15.ig)$type <- info.edge.CaCD.15[,3]
+V(info.edge.CaCD.15.ig)$CaCD <- labs.CaCD
+
+plot(info.edge.CaCD.15.ig, edge.color=c("white", "slategrey")[(E(info.edge.CaCD.15.ig)$type)+1], vertex.label =V(info.edge.CaCD.15.ig)$CaCD)
+
+```
+
+```{r,echo=FALSE}
+wd<-getwd()
+setwd(wd)
+#working on the 2016 data by using the same steps as used for 2015
+know2016 <- "data2016/Roundtables_SNA_2016_081916_FL how do you know.csv"
+fnKnow2016 <- paste(wd, know2016, sep="/")
+send2016 <- "data2016/Roundtables_SNA_2016_081916_FL Send info.csv"
+fnSend2016 <- paste(wd, send2016, sep="/")
+receive2016 <- "data2016/Roundtables_SNA_2016_081916_FL Receive info.csv"
+fnReceive2016 <- paste(wd, receive2016, sep="/")
+attr2016 <- "data2016/Roundtables_SNA_2016_081916_FL Attributes.csv"
+fnAttr2016 <- paste(wd, attr2016, sep="/")
+# Read 2016 network files
+kno2016 <- data.matrix(read.csv(fnKnow2016, header = TRUE, row.names = 1, sep = ","))
+sen2016 <- data.matrix(read.csv(fnSend2016, header = TRUE, row.names = 1, sep = ","))
+rec2016 <- data.matrix(read.csv(fnReceive2016, header = TRUE, row.names = 1, sep = ","))
+
+rec2016[is.na(rec2016)] <- 0
+sen2016[is.na(sen2016)] <- 0
+
+info.16 <- rec2016+sen2016
+info.bi.16 <-info.16 
+for (i in 1:ncol(info.bi.16)){
+  for (j in 1:nrow(info.bi.16)){
+    if (info.bi.16[j,i] >= 2) {info.bi.16[j,i] <- 1}
+    else info.bi.16[j,i] <- 0
+  }
+}
+  
+head(info.bi.16)  
+g.bi.16 <- graph_from_adjacency_matrix(info.bi.16,mode="undirected")
+V(g.bi.16)$CaCD <- labs2016
+g.bi.noDK.16 <- delete_vertices(g.bi.16,V(g.bi.16)$CaCD == 'DK')
+l= layout_in_circle(g.bi.noDK.16)
+deg = degree(g.bi.noDK.16)
+plot(g.bi.noDK.16, vertex.size=deg, vertex.label = V(g.bi.noDK.16)$CaCD)
+atr2016 <- read.csv(file=fnAttr2016,head=TRUE,sep=",")
+#stay the names of nodes and their CaCD
+atr.ccd.16 <- atr2016[,c(1,4)]
+atr.ccd.16[is.na(atr.ccd.16)] <- 3  
+# labels for cancer or CD
+for (i in 1:nrow(atr.ccd.16)) {
+  if (atr.ccd.16[i,2] == 1) {atr.ccd.16[i,2] <- "Ca"}
+  else if (atr.ccd.16[i,2]==2) {atr.ccd.16[i,2] <- "CD"}
+  else  {atr.ccd.16[i,2] <- "DK"}
+}
+#create a date frame of info.bi
+info.edge.df.16 <- as_data_frame(g.bi.16, what = "edges")
+
+Ca.df.16 <- atr.ccd.16[grep("Ca", atr.ccd.16[,2]),]
+CD.df.16 <- atr.ccd.16[grep("CD", atr.ccd.16[,2]),]
+DK.df.16 <- atr.ccd.16[grep("DK", atr.ccd.16[,2]),]
+
+Ca.16<- as.character(Ca.df.16[,1])
+CD.16<- as.character(CD.df.16[,1])
+DK.16<- as.character(DK.df.16[,1])
+
+for(j in 1:nrow(info.edge.df.16 )){
+  if(info.edge.df.16[j,1] %in% Ca.16 & info.edge.df.16[j,2] %in% CD.16) info.edge.df.16[j,3] = 1
+  else if(info.edge.df.16[j,1] %in% CD.16 & info.edge.df.16[j,2] %in% Ca.16) info.edge.df.16[j,3] = 1
+  else if(info.edge.df.16[j,1] %in% DK.16 | info.edge.df.16[j,2] %in% DK.16) info.edge.df.16[j,3] = 2
+  else (info.edge.df.16[j,3]=0)
+}
+#data frame which only has edges between Ca and CD
+info.edge.CaCD.16 <- info.edge.df.16[info.edge.df.16$V3 != 2,]
+info.edge.CaCD.16.ig <- graph_from_data_frame(d=info.edge.CaCD.16[,1:2], directed = F)
+
+
+info.edge.CaCD.16.ig<-info.edge.CaCD.16.ig + vertex("FL32")
+V(info.edge.CaCD.16.ig) 
+
+#left point
+FL45 <- grep("FL45", atr.ccd.16[,1])
+#new labs without FL32
+labs.new <- labs2016[-c(FL45)]
+labs.CaCD <- labs.new[-grep("DK",  labs.new)]
+labs.CaCD[15] <- "CD" #attribute for 15
+
+E(info.edge.CaCD.16.ig)$type <- info.edge.CaCD.16[,3]
+V(info.edge.CaCD.16.ig)$CaCD <- labs.CaCD
+
+plot(info.edge.CaCD.16.ig, edge.color=c("white", "slategrey")[(E(info.edge.CaCD.16.ig)$type)+1], vertex.label =V(info.edge.CaCD.16.ig)$CaCD) #here we can see which nodes in both community cotact with people that in another community in 2016.
+#Comparing the connection in 2015, we can see the interaction decreased. 
+```
+
+

@@ -1,7 +1,7 @@
 # Social Network
 
 ## PJ_Media.RMD 
-is the code file of final project. which is to analyze a sample network containing media (newspaper and TV) channels and users of these channels.
+PJ_Media.RMD is the code file of final project, which is to analyze a sample network containing media (newspaper and TV) channels and users of these channels.
 By finishing this project we are able to answer the following questions:
 1.      Which are the top 3 most popular channels overall?
 2.      How many channels does the average user consume?
